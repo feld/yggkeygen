@@ -3,10 +3,6 @@ This file generates crypto keys.
 It prints out a new set of keys each time if finds a "better" one.
 By default, "better" means a higher NodeID (-> higher IP address).
 This is because the IP address format can compress leading 1s in the address, to increase the number of ID bits in the address.
-
-If run with the "-sig" flag, it generates signing keys instead.
-A "better" signing key means one with a higher TreeID.
-This only matters if it's high enough to make you the root of the tree.
 */
 package main
 
