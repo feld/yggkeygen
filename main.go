@@ -9,6 +9,7 @@ package main
 import (
 	"crypto/ed25519"
 	"encoding/hex"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"net"
@@ -26,6 +27,12 @@ type keySet struct {
 	count uint64
 }
 
+type keyOutput struct {
+	Private string `json:"private"`
+	Public  string `json:"public"`
+	IP      string `json:"ip"`
+}
+
 func main() {
 	if err := protect.Pledge("stdio"); err != nil {
 		panic(err)
@@ -33,6 +40,7 @@ func main() {
 
 	strongMode := flag.Bool("strong", false, "Generate the strongest possible key over 5 seconds")
 	quietMode := flag.Bool("quiet", false, "Suppress all output except key information")
+	jsonMode := flag.Bool("json", false, "Output key information in JSON format")
 	flag.Parse()
 
 	threads := runtime.GOMAXPROCS(0)
@@ -45,6 +53,26 @@ func main() {
 	newKeys := make(chan keySet, threads)
 	for i := 0; i < threads; i++ {
 		go doKeys(newKeys)
+	}
+
+	outputKey := func(priv ed25519.PrivateKey, pub ed25519.PublicKey) {
+		addr := address.AddrForKey(pub)
+		if *jsonMode {
+			output := keyOutput{
+				Private: hex.EncodeToString(priv),
+				Public:  hex.EncodeToString(pub),
+				IP:      net.IP(addr[:]).String(),
+			}
+			jsonData, err := json.Marshal(output)
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println(string(jsonData))
+		} else {
+			fmt.Println("Private:", hex.EncodeToString(priv))
+			fmt.Println("Public:", hex.EncodeToString(pub))
+			fmt.Println("IP:", net.IP(addr[:]).String())
+		}
 	}
 
 	if *strongMode {
@@ -65,10 +93,7 @@ func main() {
 				if !*quietMode {
 					fmt.Printf("\nGenerated best key after trying %d keys:\n", totalKeys)
 				}
-				fmt.Println("Private:", hex.EncodeToString(bestKeySet.priv))
-				fmt.Println("Public:", hex.EncodeToString(bestKeySet.pub))
-				addr := address.AddrForKey(bestKeySet.pub)
-				fmt.Println("IP:", net.IP(addr[:]).String())
+				outputKey(bestKeySet.priv, bestKeySet.pub)
 				return
 			}
 		}
@@ -79,10 +104,7 @@ func main() {
 		if !*quietMode {
 			fmt.Printf("Generated key after trying %d keys:\n", totalKeys)
 		}
-		fmt.Println("Private:", hex.EncodeToString(newKey.priv))
-		fmt.Println("Public:", hex.EncodeToString(newKey.pub))
-		addr := address.AddrForKey(newKey.pub)
-		fmt.Println("IP:", net.IP(addr[:]).String())
+		outputKey(newKey.priv, newKey.pub)
 	}
 }
 
