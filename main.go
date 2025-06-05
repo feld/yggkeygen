@@ -9,6 +9,7 @@ package main
 import (
 	"crypto/ed25519"
 	"encoding/hex"
+	"flag"
 	"fmt"
 	"net"
 	"runtime"
@@ -20,8 +21,8 @@ import (
 )
 
 type keySet struct {
-	priv ed25519.PrivateKey
-	pub  ed25519.PublicKey
+	priv  ed25519.PrivateKey
+	pub   ed25519.PublicKey
 	count uint64
 }
 
@@ -30,9 +31,14 @@ func main() {
 		panic(err)
 	}
 
+	strongMode := flag.Bool("strong", false, "Generate the strongest possible key over 5 seconds")
+	quietMode := flag.Bool("quiet", false, "Suppress all output except key information")
+	flag.Parse()
+
 	threads := runtime.GOMAXPROCS(0)
-	fmt.Println("Threads:", threads)
-	start := time.Now()
+	if !*quietMode {
+		fmt.Println("Threads:", threads)
+	}
 	var totalKeys uint64
 	totalKeys = 0
 	var currentBest ed25519.PublicKey
@@ -40,17 +46,43 @@ func main() {
 	for i := 0; i < threads; i++ {
 		go doKeys(newKeys)
 	}
-	for {
-		newKey := <-newKeys
-		if isBetter(currentBest, newKey.pub) || len(currentBest) == 0 {
-			totalKeys += newKey.count
-			currentBest = newKey.pub
-			fmt.Println("-----", time.Since(start), "---", totalKeys, "keys tried")
-			fmt.Println("Priv:", hex.EncodeToString(newKey.priv))
-			fmt.Println("Pub:", hex.EncodeToString(newKey.pub))
-			addr := address.AddrForKey(newKey.pub)
-			fmt.Println("IP:", net.IP(addr[:]).String())
+
+	if *strongMode {
+		if !*quietMode {
+			fmt.Println("Running in strong mode - searching for best key over 5 seconds...")
 		}
+		timeout := time.After(5 * time.Second)
+		var bestKeySet keySet
+		for {
+			select {
+			case newKey := <-newKeys:
+				if isBetter(currentBest, newKey.pub) || len(currentBest) == 0 {
+					totalKeys += newKey.count
+					currentBest = newKey.pub
+					bestKeySet = newKey
+				}
+			case <-timeout:
+				if !*quietMode {
+					fmt.Printf("\nGenerated best key after trying %d keys:\n", totalKeys)
+				}
+				fmt.Println("Private:", hex.EncodeToString(bestKeySet.priv))
+				fmt.Println("Public:", hex.EncodeToString(bestKeySet.pub))
+				addr := address.AddrForKey(bestKeySet.pub)
+				fmt.Println("IP:", net.IP(addr[:]).String())
+				return
+			}
+		}
+	} else {
+		// Default mode: generate a single key
+		newKey := <-newKeys
+		totalKeys += newKey.count
+		if !*quietMode {
+			fmt.Printf("Generated key after trying %d keys:\n", totalKeys)
+		}
+		fmt.Println("Private:", hex.EncodeToString(newKey.priv))
+		fmt.Println("Public:", hex.EncodeToString(newKey.pub))
+		addr := address.AddrForKey(newKey.pub)
+		fmt.Println("IP:", net.IP(addr[:]).String())
 	}
 }
 
