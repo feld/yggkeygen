@@ -19,8 +19,6 @@ import (
 	"runtime"
 	"time"
 
-	"suah.dev/protect"
-
 	"github.com/yggdrasil-network/yggdrasil-go/src/address"
 )
 
@@ -62,10 +60,6 @@ Examples:
 }
 
 func main() {
-	if err := protect.Pledge("stdio"); err != nil {
-		panic(err)
-	}
-
 	strongMode := flag.Bool("strong", false, "Generate the strongest possible key over 5 seconds")
 	quietMode := flag.Bool("quiet", false, "Suppress all output except key information")
 	jsonMode := flag.Bool("json", false, "Output key information in JSON format")

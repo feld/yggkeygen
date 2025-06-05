@@ -1,6 +1,2 @@
 github.com/yggdrasil-network/yggdrasil-go v0.5.0 h1:0bZFwW6VwglJuSkIGnolgWORZtqg5KStIofaLzBHR2A=
 github.com/yggdrasil-network/yggdrasil-go v0.5.0/go.mod h1:NXqj9rpVBdAIOvofnHjE4luG1tx4bqKblcS0nWM4nvQ=
-golang.org/x/sys v0.20.0 h1:Od9JTbYCk261bKm4M/mw7AklTlFYIa0bIp9BgSm1S8Y=
-golang.org/x/sys v0.20.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=
-suah.dev/protect v1.2.4 h1:iVZG/zQB63FKNpITDYM/cXoAeCTIjCiXHuFVByJFDzg=
-suah.dev/protect v1.2.4/go.mod h1:vVrquYO3u1Ep9Ez2z8x+6N6/czm+TBmWKZfiXU2tb54=
