@@ -1,8 +1,10 @@
 /*
-This file generates crypto keys.
-It prints out a new set of keys each time if finds a "better" one.
-By default, "better" means a higher NodeID (-> higher IP address).
-This is because the IP address format can compress leading 1s in the address, to increase the number of ID bits in the address.
+Yggkeygen is a tool for generating Yggdrasil network keys.
+It can generate both regular keys and signing keys, with options to find
+the strongest possible key by searching for a specified duration.
+
+The tool uses all available CPU cores to generate keys as quickly as possible.
+By default, it generates a single key and outputs its details.
 */
 package main
 
@@ -13,6 +15,7 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"os"
 	"runtime"
 	"time"
 
@@ -33,6 +36,31 @@ type keyOutput struct {
 	IP      string `json:"ip"`
 }
 
+func printHelp() {
+	fmt.Fprintf(os.Stderr, `Usage: yggkeygen [options]
+
+Yggkeygen generates Yggdrasil network keys. By default, it generates a single key
+and outputs its details. The tool uses all available CPU cores to generate keys
+as quickly as possible.
+
+Options:
+  -strong
+        Generate the strongest possible key over 5 seconds
+  -quiet
+        Suppress all output except key information
+  -json
+        Output key information in JSON format
+  -help
+        Show this help message
+
+Examples:
+  yggkeygen              # Generate a single key
+  yggkeygen -strong      # Search for 5 seconds to find the strongest key
+  yggkeygen -quiet -json # Generate a single key, output only JSON
+`)
+	os.Exit(0)
+}
+
 func main() {
 	if err := protect.Pledge("stdio"); err != nil {
 		panic(err)
@@ -41,7 +69,12 @@ func main() {
 	strongMode := flag.Bool("strong", false, "Generate the strongest possible key over 5 seconds")
 	quietMode := flag.Bool("quiet", false, "Suppress all output except key information")
 	jsonMode := flag.Bool("json", false, "Output key information in JSON format")
+	helpMode := flag.Bool("help", false, "Show help message")
 	flag.Parse()
+
+	if *helpMode {
+		printHelp()
+	}
 
 	threads := runtime.GOMAXPROCS(0)
 	if !*quietMode {
